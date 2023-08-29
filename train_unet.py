@@ -9,10 +9,17 @@ from tqdm import tqdm
 import numpy as np
 
 import torch
+from torch.nn import functional as F
 from torch.optim import Adam
 from torch.utils.data import DataLoader
 
-from baselines.unet3d import UNet3D
+#from baselines.unet3d import UNet3D
+from baselines.pdearena_unet import Unet, FourierUnet
+from baselines.pdearena_resnet_fno import ResNet
+from baselines.neuralop_fno import FNO3D
+
+# Utils
+from baselines.pdearena_resnet_fno import partialclass, FourierBasicBlock
 
 from train_utils.losses import LpLoss
 from train_utils.datasets import KFDataset, KFaDataset, sample_data
@@ -32,7 +39,14 @@ def eval_ns(model, val_loader, criterion, device):
         u, a = u.to(device), a.to(device)
         a = a.permute(0, 4, 3, 1, 2)
         out = model(a)
-        out = out.squeeze(1).permute(0, 2, 3, 1)
+
+        if isinstance(model, Unet) or isinstance(model, FNO3D):
+            out = out.squeeze(1).permute(0, 2, 3, 1)   # B, X, Y, T
+        elif isinstance(model, FourierUnet) or isinstance(model, ResNet):
+            out = out.squeeze(2).permute(0, 2, 3, 1)   # B, X, Y, T
+        else:
+            raise NotImplementedError
+            
         val_loss = criterion(out, u)
         val_err.append(val_loss.item())
 
@@ -86,7 +100,15 @@ def train_ns(model,
         u = u.to(device)
         a_in = a_in.to(device).permute(0, 4, 3, 1, 2)   # B, C, T, X, Y
         out = model(a_in)
-        out = out.squeeze(1).permute(0, 2, 3, 1)   # B, X, Y, T
+
+        if isinstance(model, Unet) or isinstance(model, FNO3D):
+            out = out.squeeze(1).permute(0, 2, 3, 1)   # B, X, Y, T
+        elif isinstance(model, FourierUnet) or isinstance(model, ResNet):
+            out = out.squeeze(2).permute(0, 2, 3, 1)   # B, X, Y, T
+        else:
+            print(out.shape)
+            raise NotImplementedError
+
         data_loss = lploss(out, u)
 
         loss = data_loss
@@ -132,7 +154,79 @@ def subprocess(args):
         torch.cuda.manual_seed_all(seed)
 
     # create model 
-    model = UNet3D(in_channels=4, out_channels=1, f_maps=64, final_sigmoid=False).to(device)
+    #model = UNet3D(in_channels=4, out_channels=1, f_maps=64, final_sigmoid=False).to(device)
+
+    # model = Unet(                                 # UNet-mod-64
+    #     n_input_scalar_components = 4,
+    #     n_input_vector_components = 0,
+    #     n_output_scalar_components = 1,
+    #     n_output_vector_components = 0,
+    #     time_history = 33,
+    #     time_future = 33,
+    #     hidden_channels = 64,
+    #     activation = 'gelu',
+    #     norm = True,                                    
+    #     ch_mults = (1, 2, 2, 4),
+    #     is_attn = (False, False, False, False),
+    #     mid_attn = False,
+    #     n_blocks = 2,
+    #     use1x1 = False
+    # ).to(device)
+
+    # model = FourierUnet(                            # U-FNet1-16m
+    #     n_input_scalar_components = 4,
+    #     n_input_vector_components = 0,
+    #     n_output_scalar_components = 1,
+    #     n_output_vector_components = 0,
+    #     time_history = 65,
+    #     time_future = 65,
+    #     hidden_channels = 64,
+    #     activation = "gelu",
+    #     modes1 = 16,
+    #     modes2 = 16,
+    #     norm = True,
+    #     ch_mults = (1, 2, 2, 4),
+    #     is_attn = (False, False, False, False),
+    #     mid_attn = False,
+    #     n_blocks = 2,
+    #     n_fourier_layers = 1,
+    #     mode_scaling = True,
+    #     use1x1 = True,
+    # ).to(device)
+
+    model = ResNet(                                    # FNO-128-16m
+        n_input_scalar_components = 4,
+        n_input_vector_components = 0,
+        n_output_scalar_components = 1,
+        n_output_vector_components = 0,
+        block = partialclass("CustomFourierBasicBlock", FourierBasicBlock, modes1=32, modes2=32),
+        num_blocks = [1, 1, 1, 1],
+        time_history = 65,
+        time_future = 65,
+        hidden_channels = 128,
+        activation = "gelu",
+        norm = False,
+        diffmode = False,
+        usegrid = False,
+    ).to(device)
+
+    # model = FNO3D(
+    #     n_modes_height = 16,
+    #     n_modes_width = 32,
+    #     n_modes_depth = 32,
+    #     hidden_channels = 32,
+    #     in_dim = 4, 
+    #     out_dim = 1,
+    #     lifting_channels = 256,
+    #     projection_channels = 256,
+    #     n_layers = 4,
+    #     nonlinearity = F.gelu,
+    #     use_mlp = False,
+    #     mlp_dropout = 0.3,
+    #     mlp_expansion = 0.5,
+    #     norm = None
+    # ).to(device)
+
     num_params = count_params(model)
     config['num_params'] = num_params
     print(f'Number of parameters: {num_params}')
@@ -178,7 +272,7 @@ def subprocess(args):
                            t_duration=config['data']['t_duration'])
         val_loader = DataLoader(valset, batch_size=batchsize, num_workers=4)
         print(f'Train set: {len(u_set)}; Test set: {len(valset)}.')
-        optimizer = Adam(model.parameters(), lr=config['train']['base_lr'])
+        optimizer = Adam(model.parameters(), lr=config['train']['base_lr'], weight_decay=1e-4)
         scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, 
                                                          milestones=config['train']['milestones'], 
                                                          gamma=config['train']['scheduler_gamma'])

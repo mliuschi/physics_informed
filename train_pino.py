@@ -13,6 +13,7 @@ from torch.optim import Adam
 from torch.utils.data import DataLoader
 
 from models import FNO3d
+from baselines.pdearena_unet import Unet, FourierUnet
 
 from train_utils.losses import LpLoss, PINO_loss3d, get_forcing
 from train_utils.datasets import KFDataset, KFaDataset, sample_data
@@ -30,7 +31,17 @@ def eval_ns(model, val_loader, criterion, device):
     val_err = []
     for u, a in val_loader:
         u, a = u.to(device), a.to(device)
+
+        if isinstance(model, Unet) or isinstance(model, FourierUnet):
+                a = a.permute(0, 4, 3, 1, 2)
+        
         out = model(a)
+
+        if isinstance(model, Unet):
+                out = out.squeeze(1).permute(0, 2, 3, 1)   # B, X, Y, T
+        elif isinstance(model, FourierUnet):
+                out = out.squeeze(2).permute(0, 2, 3, 1)   # B, X, Y, T
+
         val_loss = criterion(out, u)
         val_err.append(val_loss.item())
 
@@ -91,7 +102,17 @@ def train_ns(model,
             u, a_in = next(u_loader)
             u = u.to(device)
             a_in = a_in.to(device)
+
+            if isinstance(model, Unet) or isinstance(model, FourierUnet):
+                a_in = a_in.permute(0, 4, 3, 1, 2)
+
             out = model(a_in)
+
+            if isinstance(model, Unet):
+                out = out.squeeze(1).permute(0, 2, 3, 1)   # B, X, Y, T
+            elif isinstance(model, FourierUnet):
+                out = out.squeeze(2).permute(0, 2, 3, 1)   # B, X, Y, T
+
             data_loss = lploss(out, u)
         else:
             data_loss = torch.zeros(1, device=device)
@@ -100,9 +121,18 @@ def train_ns(model,
             # pde loss
             a = next(a_loader)
             a = a.to(device)
-            out = model(a)
-            
             u0  = a[:, :, :, 0, -1]
+
+            if isinstance(model, Unet) or isinstance(model, FourierUnet):
+                a = a.permute(0, 4, 3, 1, 2)
+
+            out = model(a)
+
+            if isinstance(model, Unet):
+                out = out.squeeze(1).permute(0, 2, 3, 1)   # B, X, Y, T
+            elif isinstance(model, FourierUnet):
+                out = out.squeeze(2).permute(0, 2, 3, 1)   # B, X, Y, T
+            
             loss_ic, loss_f = PINO_loss3d(out, u0, forcing, v, t_duration)
             log_dict['IC'] = loss_ic.item()
             log_dict['PDE'] = loss_f.item()
@@ -143,90 +173,144 @@ def subprocess(args):
         config = yaml.load(f, yaml.FullLoader)
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
-    # set random seed
-    config['seed'] = args.seed
-    seed = args.seed
-    torch.manual_seed(seed)
-    random.seed(seed)
-    if torch.cuda.is_available():
-        torch.cuda.manual_seed_all(seed)
+    weights = [0.05, 0.1, 0.15, 0.20, 0.25, 0.30]
 
-    # create model 
-    model = FNO3d(modes1=config['model']['modes1'],
-                  modes2=config['model']['modes2'],
-                  modes3=config['model']['modes3'],
-                  fc_dim=config['model']['fc_dim'],
-                  layers=config['model']['layers'], 
-                  act=config['model']['act'], 
-                  pad_ratio=config['model']['pad_ratio']).to(device)
-    num_params = count_params(model)
-    config['num_params'] = num_params
-    print(f'Number of parameters: {num_params}')
-    # Load from checkpoint
-    if args.ckpt:
-        ckpt_path = args.ckpt
-        ckpt = torch.load(ckpt_path)
+    for w in weights:
+        print()
+        print("f-weight:", w)
+        config['train']['f_loss'] = w
+        config['log']['logdir'] = config['log']['logdir'] + str(w).replace('.', '_')
+
+        # set random seed
+        config['seed'] = args.seed
+        seed = args.seed
+        torch.manual_seed(seed)
+        random.seed(seed)
+        if torch.cuda.is_available():
+            torch.cuda.manual_seed_all(seed)
+
+        # create model 
+
+        # model = Unet(                                 # UNet-mod-64
+        #     n_input_scalar_components = 4,
+        #     n_input_vector_components = 0,
+        #     n_output_scalar_components = 1,
+        #     n_output_vector_components = 0,
+        #     time_history = 33,
+        #     time_future = 33,
+        #     hidden_channels = 64,
+        #     activation = 'gelu',
+        #     norm = True,                                    
+        #     ch_mults = (1, 2, 2, 4),
+        #     is_attn = (False, False, False, False),
+        #     mid_attn = False,
+        #     n_blocks = 2,
+        #     use1x1 = False
+        # ).to(device)
+
+        model = FourierUnet(                            # U-FNet1-16m
+            n_input_scalar_components = 4,
+            n_input_vector_components = 0,
+            n_output_scalar_components = 1,
+            n_output_vector_components = 0,
+            time_history = 33,
+            time_future = 33,
+            hidden_channels = 64,
+            activation = "gelu",
+            modes1 = 16,
+            modes2 = 16,
+            norm = True,
+            ch_mults = (1, 2, 2, 4),
+            is_attn = (False, False, False, False),
+            mid_attn = False,
+            n_blocks = 2,
+            n_fourier_layers = 1,
+            mode_scaling = True,
+            use1x1 = True,
+        ).to(device)
+
+        # Load weights
+        ckpt = torch.load('exp/Re500-1_8s-800-U-FNet1-16m/ckpts/model-50000.pt')
         model.load_state_dict(ckpt['model'])
-        print('Weights loaded from %s' % ckpt_path)
-    
-    if args.test:
-        batchsize = config['test']['batchsize']
-        testset = KFDataset(paths=config['data']['paths'], 
+        print('Weights loaded')
+
+
+        # model = FNO3d(modes1=config['model']['modes1'],
+        #               modes2=config['model']['modes2'],
+        #               modes3=config['model']['modes3'],
+        #               fc_dim=config['model']['fc_dim'],
+        #               layers=config['model']['layers'], 
+        #               act=config['model']['act'], 
+        #               pad_ratio=config['model']['pad_ratio']).to(device)
+
+        num_params = count_params(model)
+        config['num_params'] = num_params
+        print(f'Number of parameters: {num_params}')
+        # Load from checkpoint
+        if args.ckpt:
+            ckpt_path = args.ckpt
+            ckpt = torch.load(ckpt_path)
+            model.load_state_dict(ckpt['model'])
+            print('Weights loaded from %s' % ckpt_path)
+        
+        if args.test:
+            batchsize = config['test']['batchsize']
+            testset = KFDataset(paths=config['data']['paths'], 
+                                raw_res=config['data']['raw_res'],
+                                data_res=config['test']['data_res'], 
+                                pde_res=config['test']['data_res'], 
+                                n_samples=config['data']['n_test_samples'], 
+                                offset=config['data']['testoffset'], 
+                                t_duration=config['data']['t_duration'])
+            testloader = DataLoader(testset, batch_size=batchsize, num_workers=4)
+            criterion = LpLoss()
+            test_err, std_err = eval_ns(model, testloader, criterion, device)
+            print(f'Averaged test relative L2 error: {test_err}; Standard error: {std_err}')
+        else:
+            # training set
+            batchsize = config['train']['batchsize']
+            u_set = KFDataset(paths=config['data']['paths'], 
+                            raw_res=config['data']['raw_res'],
+                            data_res=config['data']['data_res'], 
+                            pde_res=config['data']['data_res'], 
+                            n_samples=config['data']['n_data_samples'], 
+                            offset=config['data']['offset'], 
+                            t_duration=config['data']['t_duration'])
+            u_loader = DataLoader(u_set, batch_size=batchsize, num_workers=4, shuffle=True)
+
+            a_set = KFaDataset(paths=config['data']['paths'], 
+                            raw_res=config['data']['raw_res'], 
+                            pde_res=config['data']['pde_res'], 
+                            n_samples=config['data']['n_a_samples'],
+                            offset=config['data']['a_offset'], 
+                            t_duration=config['data']['t_duration'])
+            a_loader = DataLoader(a_set, batch_size=batchsize, num_workers=4, shuffle=True)
+            # val set
+            valset = KFDataset(paths=config['data']['paths'], 
                             raw_res=config['data']['raw_res'],
                             data_res=config['test']['data_res'], 
                             pde_res=config['test']['data_res'], 
                             n_samples=config['data']['n_test_samples'], 
                             offset=config['data']['testoffset'], 
                             t_duration=config['data']['t_duration'])
-        testloader = DataLoader(testset, batch_size=batchsize, num_workers=4)
-        criterion = LpLoss()
-        test_err, std_err = eval_ns(model, testloader, criterion, device)
-        print(f'Averaged test relative L2 error: {test_err}; Standard error: {std_err}')
-    else:
-        # training set
-        batchsize = config['train']['batchsize']
-        u_set = KFDataset(paths=config['data']['paths'], 
-                          raw_res=config['data']['raw_res'],
-                          data_res=config['data']['data_res'], 
-                          pde_res=config['data']['data_res'], 
-                          n_samples=config['data']['n_data_samples'], 
-                          offset=config['data']['offset'], 
-                          t_duration=config['data']['t_duration'])
-        u_loader = DataLoader(u_set, batch_size=batchsize, num_workers=4, shuffle=True)
-
-        a_set = KFaDataset(paths=config['data']['paths'], 
-                           raw_res=config['data']['raw_res'], 
-                           pde_res=config['data']['pde_res'], 
-                           n_samples=config['data']['n_a_samples'],
-                           offset=config['data']['a_offset'], 
-                           t_duration=config['data']['t_duration'])
-        a_loader = DataLoader(a_set, batch_size=batchsize, num_workers=4, shuffle=True)
-        # val set
-        valset = KFDataset(paths=config['data']['paths'], 
-                           raw_res=config['data']['raw_res'],
-                           data_res=config['test']['data_res'], 
-                           pde_res=config['test']['data_res'], 
-                           n_samples=config['data']['n_test_samples'], 
-                           offset=config['data']['testoffset'], 
-                           t_duration=config['data']['t_duration'])
-        val_loader = DataLoader(valset, batch_size=batchsize, num_workers=4)
-        print(f'Train set: {len(u_set)}; Test set: {len(valset)}; IC set: {len(a_set)}')
-        optimizer = Adam(model.parameters(), lr=config['train']['base_lr'])
-        scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, 
-                                                         milestones=config['train']['milestones'], 
-                                                         gamma=config['train']['scheduler_gamma'])
-        if args.ckpt:
-            ckpt = torch.load(ckpt_path)
-            optimizer.load_state_dict(ckpt['optim'])
-            scheduler.load_state_dict(ckpt['scheduler'])
-            config['train']['start_iter'] = scheduler.last_epoch
-        train_ns(model, 
-                 u_loader, a_loader, 
-                 val_loader, 
-                 optimizer, scheduler, 
-                 device, 
-                 config, args)
-    print('Done!')
+            val_loader = DataLoader(valset, batch_size=batchsize, num_workers=4)
+            print(f'Train set: {len(u_set)}; Test set: {len(valset)}; IC set: {len(a_set)}')
+            optimizer = Adam(model.parameters(), lr=config['train']['base_lr'])
+            scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, 
+                                                            milestones=config['train']['milestones'], 
+                                                            gamma=config['train']['scheduler_gamma'])
+            if args.ckpt:
+                ckpt = torch.load(ckpt_path)
+                optimizer.load_state_dict(ckpt['optim'])
+                scheduler.load_state_dict(ckpt['scheduler'])
+                config['train']['start_iter'] = scheduler.last_epoch
+            train_ns(model, 
+                    u_loader, a_loader, 
+                    val_loader, 
+                    optimizer, scheduler, 
+                    device, 
+                    config, args)
+        print('Done!')
         
         
 

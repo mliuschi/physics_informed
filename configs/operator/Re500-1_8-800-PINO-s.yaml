@@ -1,13 +1,13 @@
 data:
   name: KF
-  paths: ['/raid/hongkai/NS-Re500_T300_id0-shuffle.npy']
+  paths: ['data/NS-Re500_T300_id0-shuffle.npy']
   Re: 500
   offset: 0
   total_num: 300
   raw_res: [256, 256, 513]
   n_data_samples: 100
-  data_res: [64, 64, 257]  # resolution in 1 second
-  pde_res: [256, 256, 513]   # resolution in 1 second
+  data_res: [64, 64, 257] # [64, 64, 257]  # resolution in 1 second: training resolution
+  pde_res: [64, 64, 257] # [256, 256, 513]   # resolution in 1 second: PDE loss resolution
   a_offset: 0
   n_a_samples: 275
   testoffset: 275
@@ -27,22 +27,22 @@ model:
 train:
   batchsize: 2
   start_iter: 0
-  num_iter: 200_001
-  milestones: [20_000, 60_000, 120_000]
-  base_lr: 0.001
+  num_iter: 5001 # 200_001
+  milestones: [500, 1000, 1500, 2000, 2500, 3000, 3500, 4000, 4500] # [20_000, 60_000, 120_000]
+  base_lr: 0.00005 #0.001
   scheduler_gamma: 0.5
-  ic_loss: 10.0
-  f_loss: 1.0
-  xy_loss: 10.0
-  save_step: 5000
-  eval_step: 5000
+  ic_loss: 0.0 #1.0
+  f_loss: 0.01 #3.0
+  xy_loss: 1.0 #10.0
+  save_step: 1000 #5000
+  eval_step: 1000 #5000
 
 test:
   batchsize: 1
-  data_res: [256, 256, 513]
+  data_res: [64, 64, 257] #[256, 256, 513]
 
 log:
-  logdir: Re500-1_8s-800-PINO-s
+  logdir: Re500-1_8s-800-U-F1Net-16m-PINO-f_loss-
   entity: hzzheng-pino
   project: PINO-KF-Re500
   group: Re500-1_8s-800-PINO-s

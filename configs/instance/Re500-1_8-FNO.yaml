@@ -1,6 +1,6 @@
 data:
   name: KF
-  paths: ['/raid/hongkai/NS-Re500_T300_id0-shuffle.npy']
+  paths: ['data/NS-Re500_T300_id0-shuffle.npy']
   Re: 500
   offset: 0
   total_num: 300
@@ -42,7 +42,7 @@ test:
   ckpt: model-400.pt
 
 log:
-  logdir: Re500-1_8s-800-FNO
+  logdir: Re500-1_8s-800-U-F1Net-16m-PINO-f_loss-0_3
   entity: hzzheng-pino
   project: PINO-NS-test-time-opt
   group: Re500-1_8s-800-FNO
