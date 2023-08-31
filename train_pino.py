@@ -222,9 +222,9 @@ def subprocess(args):
     # ).to(device)
 
     # Load weights
-    ckpt = torch.load('exp/Re500-1_8s-800-U-FNet1-16m/ckpts/model-50000.pt')
-    model.load_state_dict(ckpt['model'])
-    print('Weights loaded')
+    # ckpt = torch.load('exp/Re500-1_8s-800-U-FNet1-16m/ckpts/model-50000.pt')
+    # model.load_state_dict(ckpt['model'])
+    # print('Weights loaded')
 
 
     model = FNO3d(modes1=config['model']['modes1'],
