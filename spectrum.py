@@ -74,13 +74,13 @@ fno_pred = fno['pred'].squeeze().permute(0,3,1,2)
 #unet = torch.load(HOME_PATH + 'exp/Re500-1_8s-800-UNet/results/unet-prediction.pt')
 #unet = torch.load(HOME_PATH + 'exp/Re500-1_8s-800-U-Netmod-64/results/unet_prediction.pt')
 #unet = torch.load(HOME_PATH + 'exp/Re500-1_8s-800-U-Netmod-64/results/pino-loss-prediction.pt')
-#unet = torch.load(HOME_PATH + 'exp/Re500-1_8s-800-U-FNet1-16m/results/unet-prediction.pt')
+unet = torch.load(HOME_PATH + 'exp/Re500-1_8s-800-U-FNet1-16m/results/unet-prediction.pt')
 #unet = torch.load(HOME_PATH + 'exp/Re500-1_8s-800-UF1Net-16m-PINO/results/temp-prediction2.pt')
 #unet = torch.load(HOME_PATH + 'exp/Re500-1_8s-800-U-F1Net-16m-PINO/results/temp-prediction.pt')
 
 #unet = torch.load(HOME_PATH + 'exp/Re500-1_8s-800-U-F1Net-16m-PINO-f_loss-0_3/results/prediction_2000.pt')
 #unet = torch.load(HOME_PATH + 'exp/Re500-1_8s-800-U-F1Net-16m-PINO-f_loss-0_01-ic_loss-0_01/results/prediction_2000.pt')
-unet = torch.load(HOME_PATH + 'exp/Re500-1_8s-800-U-F1Net-16m-PINO-f_loss-0_1-ic_loss-0_03/results/prediction_4000.pt')
+#unet = torch.load(HOME_PATH + 'exp/Re500-1_8s-800-U-F1Net-16m-PINO-f_loss-0_1-ic_loss-0_03/results/prediction_4000.pt')
 unet_truth = unet['truth'].squeeze().permute(0,3,1,2)
 unet_pred = unet['pred'].squeeze().permute(0,3,1,2)
 
@@ -178,8 +178,8 @@ k = np.arange(length) * 1.0
 #k3 = k**-3 * 100000000000
 #k5 = k**-(5/3) * 5000000000
 # ax.plot(pred_sp, 'r',  label="pino", linewidth=linewidth)
-#ax.plot(unet_interp_sp, 'r',  label="U-FNet1-16m + interp.", linewidth=linewidth)
-ax.plot(unet_interp_sp, 'r',  label="U-Netmod-64 + interp.", linewidth=linewidth)
+ax.plot(unet_interp_sp, 'r',  label="U-FNet1-16m + interp.", linewidth=linewidth)
+#ax.plot(unet_interp_sp, 'r',  label="U-Netmod-64 + interp.", linewidth=linewidth)
 ax.plot(fno_sp, 'b',  label="FNO (Li et al., 2021)", linewidth=linewidth)
 #ax.plot(fno_sp, 'b',  label="FNO-128-16m + interpolate", linewidth=linewidth)
 ax.plot(finetune_sp, 'g',  label="PINO (Li et al., 2021)", linewidth=linewidth)
@@ -206,4 +206,4 @@ leg.get_frame().set_alpha(0.5)
 # plt.savefig('re5000-sp-truth-t'+str(frame)+'.png')
 
 plt.tight_layout()
-plt.savefig('figures/pdf/KF_spectrum_comparison_FNO_U_F1Net_16m_PINO_f_loss_0_1_ic_loss_0_03.pdf', format='pdf')
+plt.savefig('figures/pdf/KF_spectrum_comparison_FNO_U_F1Net_16m.pdf', format='pdf')
