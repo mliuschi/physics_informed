@@ -11,9 +11,11 @@ import numpy as np
 import torch
 from torch.optim import Adam
 from torch.utils.data import DataLoader
+import torch.nn.functional as F
 
 from models import FNO3d
 from baselines.pdearena_unet import Unet, FourierUnet
+from baselines.neuralop_fno import FNO3D
 
 from train_utils.losses import LpLoss, PINO_loss3d, get_forcing
 from train_utils.datasets import KFDataset, KFaDataset, sample_data

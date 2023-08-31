@@ -156,22 +156,22 @@ def subprocess(args):
     # create model 
     #model = UNet3D(in_channels=4, out_channels=1, f_maps=64, final_sigmoid=False).to(device)
 
-    # model = Unet(                                 # UNet-mod-64
-    #     n_input_scalar_components = 4,
-    #     n_input_vector_components = 0,
-    #     n_output_scalar_components = 1,
-    #     n_output_vector_components = 0,
-    #     time_history = 33,
-    #     time_future = 33,
-    #     hidden_channels = 64,
-    #     activation = 'gelu',
-    #     norm = True,                                    
-    #     ch_mults = (1, 2, 2, 4),
-    #     is_attn = (False, False, False, False),
-    #     mid_attn = False,
-    #     n_blocks = 2,
-    #     use1x1 = False
-    # ).to(device)
+    model = Unet(                                 # UNet-mod-64
+        n_input_scalar_components = 4,
+        n_input_vector_components = 0,
+        n_output_scalar_components = 1,
+        n_output_vector_components = 0,
+        time_history = 33,
+        time_future = 33,
+        hidden_channels = 64,
+        activation = 'gelu',
+        norm = True,                                    
+        ch_mults = (1, 2, 2, 4),
+        is_attn = (False, False, False, False),
+        mid_attn = False,
+        n_blocks = 2,
+        use1x1 = False
+    ).to(device)
 
     # model = FourierUnet(                            # U-FNet1-16m
     #     n_input_scalar_components = 4,
@@ -194,21 +194,21 @@ def subprocess(args):
     #     use1x1 = True,
     # ).to(device)
 
-    model = ResNet(                                    # FNO-128-16m
-        n_input_scalar_components = 4,
-        n_input_vector_components = 0,
-        n_output_scalar_components = 1,
-        n_output_vector_components = 0,
-        block = partialclass("CustomFourierBasicBlock", FourierBasicBlock, modes1=32, modes2=32),
-        num_blocks = [1, 1, 1, 1],
-        time_history = 65,
-        time_future = 65,
-        hidden_channels = 128,
-        activation = "gelu",
-        norm = False,
-        diffmode = False,
-        usegrid = False,
-    ).to(device)
+    # model = ResNet(                                    # FNO-128-16m
+    #     n_input_scalar_components = 4,
+    #     n_input_vector_components = 0,
+    #     n_output_scalar_components = 1,
+    #     n_output_vector_components = 0,
+    #     block = partialclass("CustomFourierBasicBlock", FourierBasicBlock, modes1=32, modes2=32),
+    #     num_blocks = [1, 1, 1, 1],
+    #     time_history = 65,
+    #     time_future = 65,
+    #     hidden_channels = 128,
+    #     activation = "gelu",
+    #     norm = False,
+    #     diffmode = False,
+    #     usegrid = False,
+    # ).to(device)
 
     # model = FNO3D(
     #     n_modes_height = 16,

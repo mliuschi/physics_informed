@@ -6,8 +6,8 @@ data:
   total_num: 300
   raw_res: [256, 256, 513]
   n_data_samples: 100
-  data_res: [256, 256, 513]  # resolution in 1 second ## [64, 64, 257]
-  pde_res: [256, 256, 129]   # resolution in 1 second ## [64, 64, 129]
+  data_res: [64, 64, 257] # [256, 256, 513]  # resolution in 1 second
+  pde_res: [64, 64, 129] # [256, 256, 129]   # resolution in 1 second
   a_offset: 0
   n_a_samples: 250
   testoffset: 275
@@ -21,8 +21,8 @@ model:
 train:
   batchsize: 2
   start_iter: 0
-  num_iter: 50_001
-  milestones: [20_000, 40_000]
+  num_iter: 100_001
+  milestones: [20_000, 40_000, 60_000] #[20_000, 40_000]
   base_lr: 0.0002
   scheduler_gamma: 0.5
   save_step: 5000
@@ -30,11 +30,11 @@ train:
 
 test:
   batchsize: 1
-  data_res: [256, 256, 513] #[64, 64, 257]
+  data_res: [64, 64, 257] #[256, 256, 513]
   ckpt: model-5000.pt
 
 log:
-  logdir: Re500-1_8s-800-FNO-128-32m-fullres-train
+  logdir: Re500-1_8s-800-Unet64_mod_corrected
   entity: hzzheng-pino
   project: PINO-KF-Re500
   group: Re500-1_8s-800-UNet
