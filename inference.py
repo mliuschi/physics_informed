@@ -30,7 +30,7 @@ def get_pred(args):
     basedir = os.path.join('exp', config['log']['logdir'])
     save_dir = os.path.join(basedir, 'results')
     os.makedirs(save_dir, exist_ok=True)
-    save_path = os.path.join(save_dir,'prediction_2000.pt')
+    save_path = os.path.join(save_dir,'prediction_4000.pt')
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     # prepare data
@@ -107,7 +107,7 @@ def get_pred(args):
     #     usegrid = False,
     # ).to(device)
 
-    # model = FNO3D(
+    # model = FNO3D(                                    # neural operator library FNO
     #     n_modes_height = 16,
     #     n_modes_width = 32,
     #     n_modes_depth = 32,
