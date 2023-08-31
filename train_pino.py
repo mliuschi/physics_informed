@@ -15,7 +15,7 @@ import torch.nn.functional as F
 
 from models import FNO3d
 from baselines.pdearena_unet import Unet, FourierUnet
-from baselines.neuralop_fno import FNO3D
+#from baselines.neuralop_fno import FNO3D
 
 from train_utils.losses import LpLoss, PINO_loss3d, get_forcing
 from train_utils.datasets import KFDataset, KFaDataset, sample_data
@@ -26,6 +26,7 @@ try:
 except ImportError:
     wandb = None
 
+os.environ["CUDA_VISIBLE_DEVICES"] = "4"
 
 @torch.no_grad()
 def eval_ns(model, val_loader, criterion, device):
