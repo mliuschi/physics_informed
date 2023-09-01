@@ -26,7 +26,7 @@ try:
 except ImportError:
     wandb = None
 
-os.environ["CUDA_VISIBLE_DEVICES"] = "4"
+os.environ["CUDA_VISIBLE_DEVICES"] = "3"
 
 @torch.no_grad()
 def eval_ns(model, val_loader, criterion, device):
