@@ -444,7 +444,7 @@ class KFDatasetMultiResolution(Dataset):
         a_data = torch.from_numpy(a_data).to(torch.float32).permute(0, 2, 3, 1)
         self.data = data.permute(0, 2, 3, 1)
 
-        self.high_res_max_idx = round(data.shape[0] * self.data-data_high_res_prop)
+        self.high_res_max_idx = round(data.shape[0] * self.data_high_res_prop)
 
         S = self.pde_res[1]
         
@@ -478,7 +478,7 @@ class KFDatasetMultiResolution(Dataset):
         ), dim=-1)
         
         if idx > self.high_res_max_idx:
-            return self.data[idx, :, ::self.sub_x, ::self.sub_x, ::self.sub_t], a_data[:, ::self.sub_x, ::self.sub_x, ::self.sub_t]
+            return self.data[idx, ::self.sub_x, ::self.sub_x, ::self.sub_t], a_data[::self.sub_x, ::self.sub_x, ::self.sub_t]
         else:
             return self.data[idx], a_data
 

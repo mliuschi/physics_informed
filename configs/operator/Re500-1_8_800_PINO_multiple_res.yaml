@@ -26,7 +26,7 @@ model:
   pad_ratio: [0.0, 0.125]
 
 train:
-  batchsize: 2
+  batchsize: 1
   start_iter: 0
   num_iter: 100_001
   milestones: [20_000, 60_000, 80_000]
@@ -43,7 +43,7 @@ test:
   data_res: [256, 256, 513]
 
 log:
-  logdir: Re500-1_8s-800-FNO3D-multiple_input_res
+  logdir: Re500-1_8s-800-FNO3D-multiple_input_res-high_res_prop_0_25
   entity: hzzheng-pino
   project: PINO-KF-Re500
   group: Re500-1_8s-800-PINO-s

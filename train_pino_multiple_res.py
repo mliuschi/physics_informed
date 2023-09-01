@@ -17,7 +17,7 @@ from models import FNO3d
 #from baselines.neuralop_fno import FNO3D
 
 from train_utils.losses import LpLoss, PINO_loss3d, get_forcing
-from train_utils.datasets import KFDataset, KFaDataset, sample_data
+from train_utils.datasets import KFDataset, KFDatasetMultiResolution, KFaDataset, sample_data
 from train_utils.utils import save_ckpt, count_params, dict2str
 
 try:
@@ -25,7 +25,7 @@ try:
 except ImportError:
     wandb = None
 
-os.environ["CUDA_VISIBLE_DEVICES"] = "3"
+os.environ["CUDA_VISIBLE_DEVICES"] = "2"
 
 @torch.no_grad()
 def eval_ns(model, val_loader, criterion, device):
@@ -187,7 +187,7 @@ def subprocess(args):
                             n_samples=config['data']['n_test_samples'], 
                             offset=config['data']['testoffset'], 
                             t_duration=config['data']['t_duration'])
-        testloader = DataLoader(testset, batch_size=batchsize, num_workers=4)
+        testloader = DataLoader(testset, batch_size=batchsize, num_workers=2)
         criterion = LpLoss()
         test_err, std_err = eval_ns(model, testloader, criterion, device)
         print(f'Averaged test relative L2 error: {test_err}; Standard error: {std_err}')
@@ -197,12 +197,12 @@ def subprocess(args):
         u_set = KFDatasetMultiResolution(paths=config['data']['paths'], 
                         raw_res=config['data']['raw_res'],
                         data_res=config['data']['data_res'], 
-                        pde_res=config['data']['data_res'], 
+                        pde_res=config['data']['pde_res'], 
                         data_high_res_prop=config['data']['data_high_res_prop'],
                         n_samples=config['data']['n_data_samples'], 
                         offset=config['data']['offset'], 
                         t_duration=config['data']['t_duration'])
-        u_loader = DataLoader(u_set, batch_size=batchsize, num_workers=4, shuffle=True)
+        u_loader = DataLoader(u_set, batch_size=batchsize, num_workers=2, shuffle=True)
 
         a_set = KFaDataset(paths=config['data']['paths'], 
                         raw_res=config['data']['raw_res'], 
@@ -210,7 +210,7 @@ def subprocess(args):
                         n_samples=config['data']['n_a_samples'],
                         offset=config['data']['a_offset'], 
                         t_duration=config['data']['t_duration'])
-        a_loader = DataLoader(a_set, batch_size=batchsize, num_workers=4, shuffle=True)
+        a_loader = DataLoader(a_set, batch_size=batchsize, num_workers=2, shuffle=True)
         # val set
         valset = KFDataset(paths=config['data']['paths'], 
                         raw_res=config['data']['raw_res'],
@@ -219,7 +219,7 @@ def subprocess(args):
                         n_samples=config['data']['n_test_samples'], 
                         offset=config['data']['testoffset'], 
                         t_duration=config['data']['t_duration'])
-        val_loader = DataLoader(valset, batch_size=batchsize, num_workers=4)
+        val_loader = DataLoader(valset, batch_size=batchsize, num_workers=2)
         print(f'Train set: {len(u_set)}; Test set: {len(valset)}; IC set: {len(a_set)}')
         optimizer = Adam(model.parameters(), lr=config['train']['base_lr'])
         scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, 
