@@ -21,8 +21,8 @@ model:
 train:
   batchsize: 2
   start_iter: 0
-  num_iter: 100_001
-  milestones: [20_000, 40_000, 60_000] #[20_000, 40_000]
+  num_iter: 200_001
+  milestones: [20_000, 40_000]
   base_lr: 0.0002
   scheduler_gamma: 0.5
   save_step: 5000

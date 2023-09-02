@@ -42,7 +42,7 @@ test:
   ckpt: model-400.pt
 
 log:
-  logdir: Re500-1_8s-800-U-F1Net-16m-PINO-f_loss-0_1-ic_loss-0_03
+  logdir: Re500-1_8s-800-Unet64_mod_corrected
   entity: hzzheng-pino
   project: PINO-NS-test-time-opt
   group: Re500-1_8s-800-FNO
