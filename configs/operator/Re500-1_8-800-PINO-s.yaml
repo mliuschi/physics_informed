@@ -27,12 +27,13 @@ model:
 train:
   batchsize: 2
   start_iter: 0
-  num_iter: 100_001 # 5001
-  milestones: [20_000, 60_000, 80_000] # [500, 1000, 1500, 2000, 2500, 3000, 3500, 4000, 4500]
+  num_iter: 200_001 # 5001
+  milestones: [20_000, 60_000, 120_000] # [500, 1000, 1500, 2000, 2500, 3000, 3500, 4000, 4500]
   base_lr: 0.001 #0.00005
+  weight_decay: 0.0 #0.0001
   scheduler_gamma: 0.5
-  ic_loss: 1.0 #0.03
-  f_loss: 3.0 #0.1
+  ic_loss: 10.0 #0.03
+  f_loss: 1.0 #0.1
   xy_loss: 10.0 #1.0
   save_step: 5000 #1000 #5000
   eval_step: 5000 #1000 #5000
@@ -42,7 +43,7 @@ test:
   data_res: [256, 256, 513] # U-FNet: [64, 64, 257]
 
 log:
-  logdir: Re500-1_8s-800-FNO3D-xy_loss_10-f_loss_3-ic_loss_1
+  logdir: Re500-1_8s-800-FNO3D-xy_loss_10-f_loss_1-ic_loss_10
   entity: hzzheng-pino
   project: PINO-KF-Re500
   group: Re500-1_8s-800-PINO-s
